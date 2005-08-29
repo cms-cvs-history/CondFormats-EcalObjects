@@ -1,0 +1,6 @@
+<use name=CondFormats/EcalObjects>
+<use name=CondCore/DBCommon>
+<bin file=testEcalMapping.cpp name=testEcalMapping>
+</bin>
+<bin file=testWriteEcalMapping.cpp name=testWriteEcalMapping>
+</bin>
