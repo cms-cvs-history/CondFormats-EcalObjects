@@ -6,6 +6,12 @@
 using namespace std;
 
 int main(int argc, char* argv[]) {
+
+  if (argc != 3) {
+    cerr << "usage:  " << argv[0] << " connString containerName" << endl;
+    return 1;
+  }
+
   string connString = argv[1];  
   string containerName = argv[2];
 
@@ -22,7 +28,6 @@ int main(int argc, char* argv[]) {
   if (!db.containerExists(containerName)) {
     
     db.startTransaction();
-
  
     cout << "Creating Container " << containerName << "..." << flush;
     db.createContainer(containerName);
