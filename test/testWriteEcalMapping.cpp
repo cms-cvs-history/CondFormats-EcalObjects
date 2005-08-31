@@ -1,3 +1,7 @@
+// writes the EcalMapping object to a POOL-ORA database
+// does not associate IOV information!
+// remember to set POOL_AUTH_USER and POOL_AUTH_PASSWORD when using oracle
+
 #include "CondFormats/EcalObjects/interface/EcalMapping.h"
 #include "CondCore/DBCommon/interface/DBWriter.h"
 #include "DataFormats/EcalDetId/interface/EBDetId.h"
@@ -7,15 +11,15 @@ using namespace std;
 
 int main(int argc, char* argv[]) {
 
-  if (argc != 3) {
-    cerr << "usage:  " << argv[0] << " connString containerName" << endl;
+  if (argc != 2) {
+    cerr << "usage:  " << argv[0] << " connString" << endl;
     return 1;
   }
 
-  string connString = argv[1];  
-  string containerName = argv[2];
+  string connString = argv[1];
+  string containerName = "EcalMapping";
 
-  cout << "Building map object..." << flush;
+  cout << "Building EcalMapping object..." << flush;
   EcalMapping ecm;
   ecm.buildMapping();
   cout << "Done." << endl;
@@ -24,24 +28,15 @@ int main(int argc, char* argv[]) {
 
   cond::DBWriter db(connString);
   cout << "Done." << endl;
-
-  if (!db.containerExists(containerName)) {
-    
-    db.startTransaction();
+  
+  db.startTransaction();
  
-    cout << "Creating Container " << containerName << "..." << flush;
-    db.createContainer(containerName);
-    cout << "Done." << endl;
-    
-    cout << "Writing mapping object..." << endl;
-    db.write(&ecm);
-    cout << "Done." << endl;
-    
-    db.commitTransaction();
-  } else {
-    cerr << "Container exists... clean out database" << endl;
-  }    
-
+  cout << "Writing mapping object..." << endl;
+  db.write(&ecm, containerName);
+  cout << "Done." << endl;
+  
+  db.commitTransaction();
+  
   cout << endl << "All Done." << endl;
   return 0;
 }
