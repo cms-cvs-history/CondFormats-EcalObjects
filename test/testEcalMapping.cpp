@@ -13,7 +13,7 @@ int main(int argc, char* argv[]) {
 
   EcalMapping::crystalAnglesPair angles;
   int logicId;
-  cms::EBDetId detid;
+  EBDetId detid;
 
   for (int SM=1; SM <= 36; ++SM) {
     for (int xtal=1; xtal <= 1700; ++xtal) {
