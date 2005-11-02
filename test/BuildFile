@@ -1,8 +1,21 @@
-<use name=CondFormats/EcalObjects>
-<use name=CondCore/DBCommon>
-<use name=DataSvc>
-<bin file=testEcalMapping.cpp name=testEcalMapping></bin>
-<bin file=testWriteEcalMapping.cpp name=testWriteEcalMapping></bin>
-<bin file=mywriteEcalMapping.cpp name=mywriteEcalMapping></bin>
-<bin file=testWriteEcalWeightMatrix.cpp name=testWriteEcalWeightMatrix></bin>
+<environment>
+  <use name=clhep>
+  <use name=CondFormats/DataRecord>
+  <use name=CondFormats/EcalObjects>
+  <use name=CondCore/DBCommon>
+  <use name=CondCore/ESSources>
+  <use name=CondCore/IOVService>
+  <use name=CondCore/MetaDataService>
+  <library file=stubs/EcalObjectAnalyzer.cc name=EcalObjectAnalyzer>
+    <flags SEAL_PLUGIN_NAME="EcalObjectAnalyzer">
+  </library>
+</environment>
 
+<environment>
+  <use name=CondFormats/EcalObjects>
+  <use name=CondCore/DBCommon>
+  <use name=CondCore/IOVService>
+  <use name=CondCore/MetaDataService>
+  <use name=CondCore/ESSources>
+  <bin file=testWriteEcalWeightMatrix.cpp></bin>
+</environment>

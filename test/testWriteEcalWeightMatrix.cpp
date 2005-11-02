@@ -12,7 +12,6 @@
 #include <cstdio>
 
 #include "CondFormats/EcalObjects/interface/EcalPedestals.h"
-#include "CondFormats/EcalObjects/interface/EcalMapping.h"
 #include "CondFormats/EcalObjects/interface/EcalWeightRecAlgoWeights.h"
 #include "CondFormats/EcalObjects/interface/EcalWeight.h"
 
@@ -20,7 +19,7 @@ using namespace std;
 
 int main(){
   //std::string contact("oracle://devdb10/cms_xiezhen_dev");
-  std::string contact("sqlite_file:ecalwgt.db");
+  std::string contact("sqlite_file:ecalcalib.db");
   pool::POOLContext::loadComponent( "SEAL/Services/MessageService" );
   pool::POOLContext::setMessageVerbosityLevel( seal::Msg::Error );
   const std::string userNameEnv = "POOL_AUTH_USER=cms_xiezhen_dev";
@@ -142,15 +141,6 @@ int main(){
   std::string pediovToken=w.write<cond::IOV>(pediov,"IOV");  
   std::cout << "pedestals written into db with IOV" << std::endl;
 
-  EcalMapping* mymap=new EcalMapping;
-  mymap->buildMapping();
-  std::string mappingtok=w.write<EcalMapping>(mymap,"EcalMapping");
-
-  cond::IOV* mapiov=new cond::IOV;
-  mapiov->iov.insert(std::make_pair(edm::IOVSyncValue::endOfTime().eventID().run(), mappingtok));
-  std::string mapiovToken=w.write<cond::IOV>(mapiov,"IOV");
-  std::cout << "mapping written into db with IOV" << std::endl;
-
   w.commitTransaction();
   std::cout << "committed transaction" << std::endl;
 
@@ -158,5 +148,4 @@ int main(){
   cond::MetaData metadata_svc(contact);
   metadata_svc.addMapping("EcalWeightRecAlgoWeights_h4_sm5", wgtiovToken);
   metadata_svc.addMapping("EcalPedestals_2008_test", pediovToken);
-  metadata_svc.addMapping("EcalMapping_v1", mapiovToken);
 }
