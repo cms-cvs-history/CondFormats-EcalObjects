@@ -14,6 +14,7 @@
 #include "CondFormats/EcalObjects/interface/EcalPedestals.h"
 #include "CondFormats/EcalObjects/interface/EcalWeightRecAlgoWeights.h"
 #include "CondFormats/EcalObjects/interface/EcalWeight.h"
+#include "DataFormats/EcalDetId/interface/EBDetId.h"
 
 using namespace std;
 
@@ -64,6 +65,9 @@ int main(){
     mat4.push_back(tv2);
   }
 
+  std::cout << "final size of mat1: " << mat1.size() << std::endl;
+  std::cout << "final size of mat2: " << mat2.size() << std::endl;
+
 
   std::string wgttok=w.write<EcalWeightRecAlgoWeights>(wgt, "EcalWeightRecAlgoWeights");
 
@@ -100,7 +104,9 @@ int main(){
         item.mean_x12 =0.87;
         item.rms_x12  =0.07;
       }
-      ped1->m_pedestals.insert(std::make_pair(channelId,item));
+      // make an EBDetId since we need EBDetId::rawId() to be used as the key for the pedestals
+      EBDetId ebdetid(iEta,iPhi);
+      ped1->m_pedestals.insert(std::make_pair(ebdetid.rawId(),item));
     }
   }
   std::string ped1tok=w.write<EcalPedestals>(ped1, "EcalPedestals");//pool::Ref takes the ownership of ped1
@@ -129,7 +135,9 @@ int main(){
         item.rms_x12 =0.27;
       }
       //std::cout << "iphi: " << iPhi << " ieta: " << iEta << " channel: " << channelId << endl;
-      ped2->m_pedestals.insert(std::make_pair(channelId,item));
+      // make an EBDetId since we need EBDetId::rawId() to be used as the key for the pedestals
+      EBDetId ebdetid(iEta,iPhi);
+      ped2->m_pedestals.insert(std::make_pair(ebdetid.rawId(),item));
     }
   }
 
