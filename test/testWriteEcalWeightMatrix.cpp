@@ -35,8 +35,12 @@ int main(){
   cout << "Done." << endl;
 
   try {
-    cout << "Creating Writers..." << flush;
+    cout << "Making Connections..." << flush;
     session->connect(cond::ReadWriteCreate);
+    metadata_svc->connect();
+    cout << "Done." << endl;
+
+    cout << "Creating Writers..." << flush;
     cond::DBWriter wgtWriter(*session, "EcalWeightRecAlgoWeights");
     cond::DBWriter pedWriter(*session, "EcalPedestals");
     cond::DBWriter iovWriter(*session, "IOV");
@@ -177,7 +181,7 @@ int main(){
     cout << "Assigning IOV..." << flush;
     tillrun=75000;
     pediov->iov.insert(make_pair(tillrun,pedtok2));
-    string pediovToken = pedWriter.markWrite<cond::IOV>(pediov);
+    string pediovToken = iovWriter.markWrite<cond::IOV>(pediov);
     cout << "Done." << endl;
 
     cout << "Pedestals written into DB with IOV" << endl;
