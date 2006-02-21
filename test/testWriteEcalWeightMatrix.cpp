@@ -1,219 +1,159 @@
 #include "CondCore/DBCommon/interface/DBWriter.h"
-#include "CondCore/DBCommon/interface/DBSession.h"
-#include "CondCore/DBCommon/interface/Exception.h"
-#include "CondCore/DBCommon/interface/ServiceLoader.h"
-#include "CondCore/DBCommon/interface/ConnectMode.h"
-#include "CondCore/DBCommon/interface/MessageLevel.h"
-#include "CondFormats/Calibration/interface/Pedestals.h"
 #include "CondCore/IOVService/interface/IOV.h"
-
-
+#include "CondCore/MetaDataService/interface/MetaData.h"
 #include "FWCore/Framework/interface/IOVSyncValue.h"
+#include "SealKernel/Service.h"
+#include "POOLCore/POOLContext.h"
+#include "SealKernel/Context.h"
+#include <string>
+#include <map>
+#include <iostream>
+#include <fstream>
+#include <cstdio>
 
 #include "CondFormats/EcalObjects/interface/EcalPedestals.h"
 #include "CondFormats/EcalObjects/interface/EcalWeightRecAlgoWeights.h"
 #include "CondFormats/EcalObjects/interface/EcalWeight.h"
 #include "DataFormats/EcalDetId/interface/EBDetId.h"
 
-
-#include "CondCore/MetaDataService/interface/MetaData.h"
-#include <string>
-#include <map>
-#include <iostream>
-
 using namespace std;
 
 int main(){
-  cout << "Setting up DB Connection..." << flush;
-  cond::ServiceLoader* loader = new cond::ServiceLoader;
-  loader->loadMessageService(cond::Error);
-  //  loader->loadAuthenticationService(cond::XML);  // unneccessary?
+  //std::string contact("oracle://devdb10/cms_xiezhen_dev");
+  std::string contact("sqlite_file:ecalcalib.db");
+  pool::POOLContext::loadComponent( "SEAL/Services/MessageService" );
+  pool::POOLContext::setMessageVerbosityLevel( seal::Msg::Error );
+  const std::string userNameEnv = "POOL_AUTH_USER=cms_xiezhen_dev";
+  ::putenv( const_cast<char*>( userNameEnv.c_str() ) );
+  const std::string passwdEnv = "POOL_AUTH_PASSWORD=xiezhen123";
+  ::putenv( const_cast<char*>( passwdEnv.c_str() ) );
 
-  string contact("sqlite_file:ecalcalib.db");
-  cond::DBSession* session = new cond::DBSession(contact);
-  cond::MetaData* metadata_svc = new cond::MetaData(contact, *loader);
-  cout << "Done." << endl;
+  cond::DBWriter w(contact);
+  w.startTransaction();
+  cond::IOV* wgt_iov=new cond::IOV;
 
-  try {
-    cout << "Making Connections..." << flush;
-    session->connect(cond::ReadWriteCreate);
-    metadata_svc->connect();
-    cout << "Done." << endl;
+  EcalWeightRecAlgoWeights* wgt=new EcalWeightRecAlgoWeights;
 
-    cout << "Creating Writers..." << flush;
-    cond::DBWriter wgtWriter(*session, "EcalWeightRecAlgoWeights");
-    cond::DBWriter pedWriter(*session, "EcalPedestals");
-    cond::DBWriter iovWriter(*session, "IOV");
-    cout << "Done." << endl;
+  typedef std::vector< std::vector<EcalWeight> > EcalWeightMatrix;
+  EcalWeightMatrix& mat1 = wgt->getWeightsBeforeGainSwitch();
+  EcalWeightMatrix& mat2 = wgt->getWeightsAfterGainSwitch();
 
-    cout << "Starting Transaction." << endl;
-    session->startUpdateTransaction();
+  std::cout << "initial size of mat1: " << mat1.size() << std::endl;
+  std::cout << "initial size of mat2: " << mat2.size() << std::endl;
 
-    cond::IOV* wgt_iov = new cond::IOV;
-
-    cout << "Building EcalWeightRecAlgoWeights." << endl;
-    EcalWeightRecAlgoWeights* wgt = new EcalWeightRecAlgoWeights;
-
-    typedef vector< vector<EcalWeight> > EcalWeightMatrix;
-    EcalWeightMatrix& mat1 = wgt->getWeightsBeforeGainSwitch();
-    EcalWeightMatrix& mat2 = wgt->getWeightsAfterGainSwitch();
-
-    cout << "initial size of mat1: " << mat1.size() << endl;
-    cout << "initial size of mat2: " << mat2.size() << endl;
-
-    for(size_t i=0; i<3; ++i) {
-      vector<EcalWeight> tv1, tv2;
-      for(size_t j=0; j<10; ++j) {
-	tv1.push_back( EcalWeight(i*10. + j) );
-	//cout << "row: " << i << " col: " << j << " -  val: " << mat1[i][j]  << endl;
-	tv2.push_back( EcalWeight(100+i*10. + j) );
-      }
-      mat1.push_back(tv1);
-      mat2.push_back(tv2);
+  for(size_t i=0; i<3; ++i) {
+    std::vector<EcalWeight> tv1, tv2;
+    for(size_t j=0; j<10; ++j) {
+      tv1.push_back( EcalWeight(i*10. + j) );
+      //std::cout << "row: " << i << " col: " << j << " -  val: " << mat1[i][j]  << std::endl;
+      tv2.push_back( EcalWeight(100+i*10. + j) );
     }
-
-    // fill the chi2 matrcies
-    EcalWeightMatrix& mat3 = wgt->getChi2WeightsBeforeGainSwitch();
-    EcalWeightMatrix& mat4 = wgt->getChi2WeightsAfterGainSwitch();
-    for(size_t i=0; i<10; ++i) {
-      vector<EcalWeight> tv1, tv2;
-      for(size_t j=0; j<10; ++j) {
-	tv1.push_back( EcalWeight(1000+i*10. + j) );
-	tv2.push_back( EcalWeight(1000+100+i*10. + j) );
-      }
-      mat3.push_back(tv1);
-      mat4.push_back(tv2);
-    }
-
-    cout << "final size of mat1: " << mat1.size() << endl;
-    cout << "final size of mat2: " << mat2.size() << endl;
-    cout << "Finished Building." << endl;
-
-    cout << "Marking Weights..." << flush;
-    string wgttok = wgtWriter.markWrite<EcalWeightRecAlgoWeights>(wgt);
-    cout << "Done." << endl;
-
-    cout << "Assigning IOV..." << flush;
-    wgt_iov->iov.insert(make_pair(edm::IOVSyncValue::endOfTime().eventID().run(), wgttok));
-    string wgtiovToken = iovWriter.markWrite<cond::IOV>(wgt_iov);
-    cout << "Done." << endl;
-    
-    cout << "Weights written into DB with IOV" << endl;
-
-    // Write EcalPedestals
-    cout << "Building EcalPedestals." << endl;
-    cond::IOV* pediov = new cond::IOV;
-    int channelId;
-    EcalPedestals::Item item;
-
-    int nMaxEta = 85;
-    int nMaxPhi = 20;
-    EcalPedestals* ped1 = new EcalPedestals;
-    for(int iEta=1; iEta<=nMaxEta;++iEta) {
-      for(int iPhi=1; iPhi<=nMaxPhi; ++iPhi) {
-	channelId= (iEta-1)*nMaxPhi+iPhi;
-	int tt = channelId;
-	if(tt%2 == 0) {
-	  item.mean_x1  =0.91;
-	  item.rms_x1   =0.17;
-	  item.mean_x6  =0.52;
-	  item.rms_x6   =0.03;
-	  item.mean_x12 =0.16;
-	  item.rms_x12  =0.05;
-	} else {
-	  item.mean_x1  =0.50;
-	  item.rms_x1   =0.94;
-	  item.mean_x6  =0.72;
-	  item.rms_x6   =0.07;
-	  item.mean_x12 =0.87;
-	  item.rms_x12  =0.07;
-	}
-	// make an EBDetId since we need EBDetId::rawId() to be used as the key for the pedestals
-	EBDetId ebdetid(iEta,iPhi);
-	ped1->m_pedestals.insert(make_pair(ebdetid.rawId(),item));
-      }
-    }
-
-    cout << "Finished Building." << endl;
-
-    cout << "Marking EcalPedestals..." << flush;
-    string ped1tok = pedWriter.markWrite<EcalPedestals>(ped1);
-    cout << "Done." << endl;
-
-    cout << "Assigning IOV..." << flush;
-    int tillrun=73000;
-    pediov->iov.insert(make_pair(tillrun,ped1tok));
-    cout << "Done." << endl;
-
-    cout << "Building more EcalPedestals." << endl;
-    EcalPedestals* ped2=new EcalPedestals; //the user gives up the object ownership upon send it to the writer
-    for(int iEta=1; iEta<=85;++iEta) {
-      for(int iPhi=1; iPhi<=20; ++iPhi) {
-	channelId= (iEta-1)*nMaxPhi+iPhi;
-	int tt = channelId;
-	if(tt%2 == 0) {
-	  item.mean_x1=0.33;
-	  item.rms_x1=0.44;
-	  item.mean_x6 =0.22;
-	  item.rms_x6  =0.11;
-	  item.mean_x12=0.39;
-	  item.rms_x12 =0.12;
-	} else {
-	  item.mean_x1=0.56;
-	  item.rms_x1=0.98;
-	  item.mean_x6 =0.83;
-	  item.rms_x6  =0.27;
-	  item.mean_x12=0.54;
-	  item.rms_x12 =0.27;
-	}
-
-	// make an EBDetId since we need EBDetId::rawId() to be used as the key for the pedestals
-	EBDetId ebdetid(iEta,iPhi);
-	ped2->m_pedestals.insert(make_pair(ebdetid.rawId(),item));
-      }
-    }
-    cout << "Finished Building" << endl;
-
-    cout << "Marking EcalPedestals..." << flush;
-    string pedtok2 = pedWriter.markWrite<EcalPedestals>(ped2);
-    cout << "Done." << endl;
-
-    cout << "Assigning IOV..." << flush;
-    tillrun=75000;
-    pediov->iov.insert(make_pair(tillrun,pedtok2));
-    string pediovToken = iovWriter.markWrite<cond::IOV>(pediov);
-    cout << "Done." << endl;
-
-    cout << "Pedestals written into DB with IOV" << endl;
-
-    cout << "Committing Session..." << flush;
-    session->commit();
-    cout << "Done." << endl;
-
-    // Disconnect
-    cout << "Disconnection Session..." << flush;
-    session->disconnect();
-    delete session;
-    cout << "Done." << endl;
-  
-    cout << "Registering to MetaData Service..." << flush;
-    metadata_svc->addMapping("EcalWeightRecAlgoWeights_h4_sm5", wgtiovToken);
-    metadata_svc->addMapping("EcalPedestals_2008_test", pediovToken);
-    cout << "Done." << endl;
-
-    cout << "Disconnecting MetaStata Service..." << flush;
-    metadata_svc->disconnect();
-    delete metadata_svc;
-    cout << "Done." << endl;
-
-    delete loader;
-
-    cout << "All Done." << endl;
-  } catch(cond::Exception &e) {
-    cout << e.what() << endl;
-  } catch(seal::Exception &e) {
-    cout << e.what() << endl;
-  } catch(...) {
-    cout << "Unknown exception" << endl;
+    mat1.push_back(tv1);
+    mat2.push_back(tv2);
   }
+
+  // fill the chi2 matrcies
+  EcalWeightMatrix& mat3 = wgt->getChi2WeightsBeforeGainSwitch();
+  EcalWeightMatrix& mat4 = wgt->getChi2WeightsAfterGainSwitch();
+  for(size_t i=0; i<10; ++i) {
+    std::vector<EcalWeight> tv1, tv2;
+    for(size_t j=0; j<10; ++j) {
+      tv1.push_back( EcalWeight(1000+i*10. + j) );
+      tv2.push_back( EcalWeight(1000+100+i*10. + j) );
+    }
+    mat3.push_back(tv1);
+    mat4.push_back(tv2);
+  }
+
+  std::cout << "final size of mat1: " << mat1.size() << std::endl;
+  std::cout << "final size of mat2: " << mat2.size() << std::endl;
+
+
+  std::string wgttok=w.write<EcalWeightRecAlgoWeights>(wgt, "EcalWeightRecAlgoWeights");
+
+  //assign IOV
+  wgt_iov->iov.insert(std::make_pair(edm::IOVSyncValue::endOfTime().eventID().run(),wgttok));
+
+  std::string wgtiovToken=w.write<cond::IOV>(wgt_iov,"IOV");
+  std::cout << "weights written into db with IOV" << std::endl;
+
+
+  cond::IOV* pediov=new cond::IOV;
+  int channelId;
+  EcalPedestals::Item item;
+
+  int nMaxEta = 85;
+  int nMaxPhi = 20;
+  EcalPedestals* ped1=new EcalPedestals;
+  for(int iEta=1; iEta<=nMaxEta;++iEta) {
+    for(int iPhi=1; iPhi<=nMaxPhi; ++iPhi) {
+      channelId= (iEta-1)*nMaxPhi+iPhi;
+      int tt = channelId;
+      if(tt%2 == 0) {
+        item.mean_x1  =0.91;
+        item.rms_x1   =0.17;
+        item.mean_x6  =0.52;
+        item.rms_x6   =0.03;
+        item.mean_x12 =0.16;
+        item.rms_x12  =0.05;
+      } else {
+        item.mean_x1  =0.50;
+        item.rms_x1   =0.94;
+        item.mean_x6  =0.72;
+        item.rms_x6   =0.07;
+        item.mean_x12 =0.87;
+        item.rms_x12  =0.07;
+      }
+      // make an EBDetId since we need EBDetId::rawId() to be used as the key for the pedestals
+      EBDetId ebdetid(iEta,iPhi);
+      ped1->m_pedestals.insert(std::make_pair(ebdetid.rawId(),item));
+    }
+  }
+  std::string ped1tok=w.write<EcalPedestals>(ped1, "EcalPedestals");//pool::Ref takes the ownership of ped1
+  //assign IOV
+  int tillrun=73000;
+  pediov->iov.insert(std::make_pair(tillrun,ped1tok));
+
+  EcalPedestals* ped2=new EcalPedestals; //the user gives up the object ownership upon send it to the writer
+  for(int iEta=1; iEta<=85;++iEta) {
+    for(int iPhi=1; iPhi<=20; ++iPhi) {
+      channelId= (iEta-1)*nMaxPhi+iPhi;
+      int tt = channelId;
+      if(tt%2 == 0) {
+        item.mean_x1=0.33;
+        item.rms_x1=0.44;
+        item.mean_x6 =0.22;
+        item.rms_x6  =0.11;
+        item.mean_x12=0.39;
+        item.rms_x12 =0.12;
+      } else {
+        item.mean_x1=0.56;
+        item.rms_x1=0.98;
+        item.mean_x6 =0.83;
+        item.rms_x6  =0.27;
+        item.mean_x12=0.54;
+        item.rms_x12 =0.27;
+      }
+      //std::cout << "iphi: " << iPhi << " ieta: " << iEta << " channel: " << channelId << endl;
+      // make an EBDetId since we need EBDetId::rawId() to be used as the key for the pedestals
+      EBDetId ebdetid(iEta,iPhi);
+      ped2->m_pedestals.insert(std::make_pair(ebdetid.rawId(),item));
+    }
+  }
+
+  std::string pedtok2=w.write<EcalPedestals>(ped2,"EcalPedestals");
+
+  //assign IOV
+  tillrun=75000;
+  pediov->iov.insert(std::make_pair(tillrun,pedtok2));
+  std::string pediovToken=w.write<cond::IOV>(pediov,"IOV");  
+  std::cout << "pedestals written into db with IOV" << std::endl;
+
+  w.commitTransaction();
+  std::cout << "committed transaction" << std::endl;
+
+  //register the iovToken to the metadata service
+  cond::MetaData metadata_svc(contact);
+  metadata_svc.addMapping("EcalWeightRecAlgoWeights_h4_sm5", wgtiovToken);
+  metadata_svc.addMapping("EcalPedestals_2008_test", pediovToken);
 }
