@@ -63,6 +63,7 @@ try {
   cond::DBWriter grWriter(*session, "EcalGainRatios");
   cond::DBWriter icalWriter(*session, "EcalIntercalibConstants");
   cond::DBWriter pedWriter(*session, "EcalPedestals");
+  cond::DBWriter wgtWriter(*session, "EcalWeightRecAlgoWeights");
 
 
   cond::DBWriter iovWriter(*session, "IOV");
@@ -104,9 +105,9 @@ try {
 
       // make a new set of weights
       EcalWeightSet wgt;
-      typedef std::vector< std::vector<EcalWeight> > EcalWeightMatrix;
-      EcalWeightMatrix& mat1 = wgt.getWeightsBeforeGainSwitch();
-      EcalWeightMatrix& mat2 = wgt.getWeightsAfterGainSwitch();
+      //typedef std::vector< std::vector<EcalWeight> > EcalWeightSet::EcalWeightMatrix;
+      EcalWeightSet::EcalWeightMatrix& mat1 = wgt.getWeightsBeforeGainSwitch();
+      EcalWeightSet::EcalWeightMatrix& mat2 = wgt.getWeightsAfterGainSwitch();
 
       //std::cout << "initial size of mat1: " << mat1.size() << std::endl;
       //std::cout << "initial size of mat2: " << mat2.size() << std::endl;
@@ -125,8 +126,8 @@ try {
 
       // fill the chi2 matrcies
       r = (double)std::rand()/( double(RAND_MAX)+double(1) );
-      EcalWeightMatrix& mat3 = wgt.getChi2WeightsBeforeGainSwitch();
-      EcalWeightMatrix& mat4 = wgt.getChi2WeightsAfterGainSwitch();
+      EcalWeightSet::EcalWeightMatrix& mat3 = wgt.getChi2WeightsBeforeGainSwitch();
+      EcalWeightSet::EcalWeightMatrix& mat4 = wgt.getChi2WeightsAfterGainSwitch();
       for(size_t i=0; i<10; ++i) {
         std::vector<EcalWeight> tv1, tv2;
         for(size_t j=0; j<10; ++j) {
@@ -295,6 +296,54 @@ try {
   std::string pediovToken = iovWriter.markWrite<cond::IOV>(pediov);
   std::cout << "pedestals written into db with IOV" << std::endl;
 
+    cout << "Building EcalWeightRecAlgoWeights." << endl;
+    EcalWeightRecAlgoWeights* wgt = new EcalWeightRecAlgoWeights;
+
+    typedef vector< vector<EcalWeight> > EcalWeightMatrix;
+    EcalWeightMatrix& mat1 = wgt->getWeightsBeforeGainSwitch();
+    EcalWeightMatrix& mat2 = wgt->getWeightsAfterGainSwitch();
+
+    cout << "initial size of mat1: " << mat1.size() << endl;
+    cout << "initial size of mat2: " << mat2.size() << endl;
+
+    for(size_t i=0; i<3; ++i) {
+      vector<EcalWeight> tv1, tv2;
+      for(size_t j=0; j<10; ++j) {
+	tv1.push_back( EcalWeight(i*10. + j) );
+	//cout << "row: " << i << " col: " << j << " -  val: " << mat1[i][j]  << endl;
+	tv2.push_back( EcalWeight(100+i*10. + j) );
+      }
+      mat1.push_back(tv1);
+      mat2.push_back(tv2);
+    }
+
+    // fill the chi2 matrcies
+    EcalWeightMatrix& mat3 = wgt->getChi2WeightsBeforeGainSwitch();
+    EcalWeightMatrix& mat4 = wgt->getChi2WeightsAfterGainSwitch();
+    for(size_t i=0; i<10; ++i) {
+      vector<EcalWeight> tv1, tv2;
+      for(size_t j=0; j<10; ++j) {
+	tv1.push_back( EcalWeight(1000+i*10. + j) );
+	tv2.push_back( EcalWeight(1000+100+i*10. + j) );
+      }
+      mat3.push_back(tv1);
+      mat4.push_back(tv2);
+    }
+
+    cout << "final size of mat1: " << mat1.size() << endl;
+    cout << "final size of mat2: " << mat2.size() << endl;
+    cout << "Finished Building." << endl;
+
+    cout << "Marking Weights..." << endl;
+    string wgttok = wgtWriter.markWrite<EcalWeightRecAlgoWeights>(wgt);
+    cout << "Done." << endl;
+
+    cout << "Assigning IOV..." << endl;
+    cond::IOV* wgt_iov = new cond::IOV;
+    wgt_iov->iov.insert(make_pair(edm::IOVSyncValue::endOfTime().eventID().run(), wgttok));
+    string wgtiovToken = iovWriter.markWrite<cond::IOV>(wgt_iov);
+    cout << "Done." << endl;
+    cout << "Weights written into DB with IOV" << endl;
 
   cout << "Committing Session..." << endl;
   session->commit();
@@ -314,6 +363,7 @@ try {
   metadata_svc->addMapping("EcalGainRatios", gr_iov_Token);
   metadata_svc->addMapping("EcalIntercalibConstants", ical_iov_Token);
   metadata_svc->addMapping("EcalADCToGeVConstant", agc_iov_Token);
+  metadata_svc->addMapping("EcalWeightRecAlgoWeights", wgtiovToken);
   cout << "Done." << endl;
 
   cout << "Disconnecting MetaStata Service..." << flush;
