@@ -211,8 +211,6 @@ int main(){
     cout << "All Done." << endl;
   } catch(cond::Exception &e) {
     cout << e.what() << endl;
-  } catch(seal::Exception &e) {
-    cout << e.what() << endl;
   } catch(...) {
     cout << "Unknown exception" << endl;
   }

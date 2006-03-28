@@ -10,12 +10,6 @@
 
 #include "CondCore/MetaDataService/interface/MetaData.h"
 
-/**
-#include "SealKernel/Service.h"
-#include "POOLCore/POOLContext.h"
-#include "SealKernel/Context.h"
-**/
-
 #include <string>
 #include <map>
 #include <iostream>
@@ -374,8 +368,6 @@ try {
   delete loader;
 
 } catch(cond::Exception &e) {
-  cout << e.what() << endl;
-} catch(seal::Exception &e) {
   cout << e.what() << endl;
 } catch(...) {
   cout << "Unknown exception" << endl;
