@@ -28,3 +28,13 @@
   <use name=CondCore/ESSources>
   <bin file=testEcalObjects.cpp></bin>
 </environment>
+
+<environment>
+  <Flags CXXFLAGS=-g>
+  <use name=CondFormats/EcalObjects>
+  <use name=CondCore/DBCommon>
+  <use name=CondCore/IOVService>
+  <use name=CondCore/MetaDataService>
+  <use name=CondCore/ESSources>
+  <bin file=testDevDB.cpp></bin>
+</environment>
