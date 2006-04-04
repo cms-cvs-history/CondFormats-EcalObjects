@@ -1,0 +1,15 @@
+** V00-02-00  [Thu Feb  2 18:45:45 2006]
+.admin/version
+
+** V00-00-02  [Wed Nov  2 16:41:51 2005]
+removed EcalMapping object
+
+** V00-00-01  [Fri Oct 28 11:33:21 2005]
+fixed version file removing one line
+
+** V00-00-01  [Thu Oct 27 18:06:02 2005]
+add EcalWeightRecAlgoWeights object
+
+** V00-00-00  [Wed Oct 26 18:08:17 2005]
+Base tag on CMSSW_0_2_0_pre5
+
