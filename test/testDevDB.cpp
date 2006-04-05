@@ -61,7 +61,7 @@ class Application {
   public:
     Application(const std::string& connection,  const std::string& tag);
     ~Application();
-    void writeObjectsIntoDB(int firstrun, int lastrun);
+    void writeObjectsIntoDB(unsigned long firstrun, unsigned long lastrun);
 };
 //-------------------------------------------------------------
 //-------------------------------------------------------------
@@ -276,7 +276,7 @@ Application::generateEcalPedestals() {
 }
 
 //-------------------------------------------------------------
-void Application::writeObjectsIntoDB(int firstrun, int lastrun) {
+void Application::writeObjectsIntoDB(unsigned long firstrun, unsigned long lastrun) {
 //-------------------------------------------------------------
 
   //define iov objects
@@ -287,8 +287,12 @@ void Application::writeObjectsIntoDB(int firstrun, int lastrun) {
   cond::IOV* gr_iov=new cond::IOV;
   //cond::IOV* pediov=new cond::IOV;
 
-
-  for(int irun=firstrun; irun<=lastrun; ++irun) {
+  for(unsigned long irun=firstrun; irun<=lastrun; ++irun) {
+    // Arguments 0 0 mean infine IOV
+    if (firstrun == 0 && lastrun == 0) {
+      cout << "Infinite IOV mode" << endl;
+      irun = edm::IOVSyncValue::endOfTime().eventID().run();
+    }
 
     cout << "Starting Transaction for run " << irun << endl;
     session->startUpdateTransaction();
@@ -317,14 +321,20 @@ void Application::writeObjectsIntoDB(int firstrun, int lastrun) {
     //std::string pedtok = pedWriter->markWrite<EcalPedestals>(ped);
     //pediov->iov.insert(std::make_pair(irun,pedtok));
 
-    cout << "Committing Session for run " << irun << " ..." << endl;
+    cout << "Committing Session for run " << irun << " ..." << flush;
     session->commit();
     cout << "Done." << endl;
+
+    // End loop on infinite IOV
+    if (firstrun == 0 && lastrun == 0) {
+      break;
+    }
   }
 
   // writing iov's and adding mapping for meta data
 
   // new session to write IOV objects
+  cout << "Starting transaction for IOV objects." << endl;
   session->startUpdateTransaction();
 
   std::string grp_iov_Token = iovWriter->markWrite<cond::IOV>(grp_iov);
@@ -334,9 +344,13 @@ void Application::writeObjectsIntoDB(int firstrun, int lastrun) {
   std::string gr_iov_Token = iovWriter->markWrite<cond::IOV>(gr_iov);
   //std::string pediovToken = iovWriter->markWrite<cond::IOV>(pediov);
 
+  cout << "Committing Session for IOVs..." << flush;
   session->commit();
+  cout << "Done." << endl;
 
   // finally add mapping for meta data
+  cout << "Adding metadata to objects..." << flush;
+
   std::string grp_tag("EcalWeightXtalGroups_"+tag_);
   metadata_svc->addMapping(grp_tag, grp_iov_Token);
 
@@ -355,6 +369,7 @@ void Application::writeObjectsIntoDB(int firstrun, int lastrun) {
   //std::string ped_tag("EcalPedestals_"+tag_);
   //metadata_svc->addMapping(tag_, pediovToken);
 
+  cout << "Done." << endl;
 
 } // writeObjectsIntoDB()
 
@@ -375,8 +390,8 @@ int main(int argc, char* argv[]){
 
   // parse the command line arguments
   std::string connection = argv[1];
-  int firstRun = atoi(argv[2]);
-  int lastRun = atoi(argv[3]);
+  unsigned long firstRun = (unsigned long)atoi(argv[2]);
+  unsigned long lastRun = (unsigned long)atoi(argv[3]);
   std::string tag = argv[4];
 
 
