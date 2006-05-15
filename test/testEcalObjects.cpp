@@ -153,7 +153,7 @@ try {
   std::cout << "Weights for the TB put in DB with IoV" << std::endl;
 
   // create ADC -> GeV scale
-  EcalADCToGeVConstant* agc1 = new EcalADCToGeVConstant(37.);
+  EcalADCToGeVConstant* agc1 = new EcalADCToGeVConstant(37.,60.);
   std::string agc1_tok = agcWriter.markWrite<EcalADCToGeVConstant>(agc1);
 
   // new iov object
@@ -161,12 +161,12 @@ try {
   agc_iov->iov.insert(std::make_pair(72000,agc1_tok)); // run number
 
   // new ADC scale for new IOV
-  EcalADCToGeVConstant* agc2 = new EcalADCToGeVConstant(36.);
+  EcalADCToGeVConstant* agc2 = new EcalADCToGeVConstant(36.,61.);
   std::string agc2_tok = agcWriter.markWrite<EcalADCToGeVConstant>(agc2);
   agc_iov->iov.insert(std::make_pair(73000,agc2_tok)); // run number
 
   // yet another ADC scale with new IOV
-  EcalADCToGeVConstant* agc3 = new EcalADCToGeVConstant(39.);
+  EcalADCToGeVConstant* agc3 = new EcalADCToGeVConstant(39.,64.);
   std::string agc3_tok = agcWriter.markWrite<EcalADCToGeVConstant>(agc3);
   agc_iov->iov.insert(std::make_pair(edm::IOVSyncValue::endOfTime().eventID().run(),agc3_tok)); // run number
 

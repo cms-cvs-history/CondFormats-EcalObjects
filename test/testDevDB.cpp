@@ -198,7 +198,7 @@ Application::generateEcalADCToGeVConstant() {
 //-------------------------------------------------------------
 
   double r = (double)std::rand()/( double(RAND_MAX)+double(1) );
-  EcalADCToGeVConstant* agc = new EcalADCToGeVConstant(36.+r*4.);
+  EcalADCToGeVConstant* agc = new EcalADCToGeVConstant(36.+r*4.,60.+r*4.);
   return agc;
 }
 
@@ -401,8 +401,8 @@ int main(int argc, char* argv[]){
     app.writeObjectsIntoDB(firstRun,lastRun);
   } catch(cond::Exception &e) {
     cout << e.what() << endl;
-  } catch(seal::Exception &e) {
-    cout << e.what() << endl;
+//   } // catch(seal::Exception &e) {
+//     cout << e.what() << endl;
   } catch(...) {
     cout << "Unknown exception" << endl;
   }
