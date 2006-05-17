@@ -15,6 +15,7 @@
 #include <iostream>
 #include <fstream>
 #include <cstdio>
+#include <typeinfo>
 
 #include "CondFormats/EcalObjects/interface/EcalWeightXtalGroups.h"
 #include "CondFormats/EcalObjects/interface/EcalXtalGroupId.h"
@@ -25,8 +26,6 @@
 #include "CondFormats/EcalObjects/interface/EcalGainRatios.h"
 #include "CondFormats/EcalObjects/interface/EcalMGPAGainRatio.h"
 #include "CondFormats/EcalObjects/interface/EcalADCToGeVConstant.h"
-
-#include "CondFormats/EcalObjects/interface/EcalWeightRecAlgoWeights.h"
 #include "CondFormats/EcalObjects/interface/EcalPedestals.h"
 #include "DataFormats/EcalDetId/interface/EBDetId.h"
 
@@ -34,34 +33,25 @@ using namespace std;
 
 //-------------------------------------------------------------
 class Application {
-//-------------------------------------------------------------
-  private:
-   cond::ServiceLoader* loader;
-   cond::DBSession*     session;
-   cond::MetaData*      metadata_svc;
-   cond::DBWriter* grpWriter;
-   cond::DBWriter* tbwgtWriter;
-   cond::DBWriter* agcWriter;
-   cond::DBWriter* grWriter;
-   cond::DBWriter* icalWriter;
-   cond::DBWriter* pedWriter;
-   cond::DBWriter* wgtWriter;
-   cond::DBWriter* iovWriter;
+  //-------------------------------------------------------------
+private:
+  std::map<std::string, std::string> objNameMap;
+  std::string connection_;
+  std::string tag_;
 
-   std::string tag_;
+public:
+  void* generate(std::string objectName);
+  EcalWeightXtalGroups* generateEcalWeightXtalGroups();
+  EcalTBWeights* generateEcalTBWeights();
+  EcalADCToGeVConstant* generateEcalADCToGeVConstant();
+  EcalIntercalibConstants* generateEcalIntercalibConstants();
+  EcalGainRatios* generateEcalGainRatios();
+  EcalPedestals* generateEcalPedestals();
+  template <class T> void writeObjectsIntoDB(unsigned long firstrun, unsigned long lastrun, unsigned int interval);
 
-  private:
-    EcalWeightXtalGroups* generateEcalWeightXtalGroups();
-    EcalTBWeights*        generateEcalTBWeights();
-    EcalADCToGeVConstant* generateEcalADCToGeVConstant();
-    EcalIntercalibConstants* generateEcalIntercalibConstants();
-    EcalGainRatios*       generateEcalGainRatios();
-    EcalPedestals*        generateEcalPedestals();
+  Application(const std::string& connection,  const std::string& tag);
+  ~Application();
 
-  public:
-    Application(const std::string& connection,  const std::string& tag);
-    ~Application();
-    void writeObjectsIntoDB(unsigned long firstrun, unsigned long lastrun);
 };
 //-------------------------------------------------------------
 //-------------------------------------------------------------
@@ -70,29 +60,36 @@ class Application {
 Application::Application(const std::string& connection, const std::string& tag) {
 //-------------------------------------------------------------
 
+  connection_ = connection;
   tag_ = tag;
 
-  cout << "Setting up DB Connection..." << flush;
-  loader = new cond::ServiceLoader;
-  loader->loadMessageService(cond::Error);
+  std::string objectTypeName;
+  std::string objectName;
+  
+  objectName = "EcalWeightXtalGroups";
+  objectTypeName = std::string( typeid(EcalWeightXtalGroups).name() );
+  objNameMap[objectTypeName] = objectName;
 
-  session = new cond::DBSession(connection);
-  session->connect(cond::ReadWriteCreate);
+  objectName = "EcalTBWeights";
+  objectTypeName = std::string( typeid(EcalTBWeights).name() );
+  objNameMap[objectTypeName] = objectName;
 
-  metadata_svc = new cond::MetaData(connection, *loader);
-  metadata_svc->connect();
+  objectName = "EcalADCToGeVConstant";
+  objectTypeName = std::string( typeid(EcalADCToGeVConstant).name() );
+  objNameMap[objectTypeName] = objectName;
 
-  cout << "Done." << endl;
+  objectName = "EcalGainRatios";
+  objectTypeName = std::string( typeid(EcalGainRatios).name() );
+  objNameMap[objectTypeName] = objectName;
 
-  cout << "Creating Writers..." << flush;
-  grpWriter  = new cond::DBWriter(*session, "EcalWeightXtalGroups");
-  tbwgtWriter= new cond::DBWriter(*session, "EcalTBWeights");
-  agcWriter  = new cond::DBWriter(*session, "EcalADCToGeVConstant");
-  grWriter   = new cond::DBWriter(*session, "EcalGainRatios");
-  icalWriter = new cond::DBWriter(*session, "EcalIntercalibConstants");
-  pedWriter  = new cond::DBWriter(*session, "EcalPedestals");
-  wgtWriter  = new cond::DBWriter(*session, "EcalWeightRecAlgoWeights");
-  iovWriter  = new cond::DBWriter(*session, "IOV");
+  objectName = "EcalIntercalibConstants";
+  objectTypeName = std::string( typeid(EcalIntercalibConstants).name() );
+  objNameMap[objectTypeName] = objectName;
+
+  objectName = "EcalPedestals";
+  objectTypeName = std::string( typeid(EcalPedestals).name() );
+  objNameMap[objectTypeName] = objectName;
+
   cout << "Done." << endl;
 
 }
@@ -100,24 +97,29 @@ Application::Application(const std::string& connection, const std::string& tag) 
 //-------------------------------------------------------------
 Application::~Application() {
 //-------------------------------------------------------------
-
-  delete loader;
-  session->disconnect();
-  delete session;
-  metadata_svc->disconnect();
-  delete metadata_svc;
-
-  delete grpWriter  ;
-  delete tbwgtWriter;
-  delete agcWriter  ;
-  delete grWriter   ;
-  delete icalWriter ;
-  delete pedWriter  ;
-  delete wgtWriter  ;
-  delete iovWriter  ;
-
 }
 
+
+void*
+Application::generate(std::string objectName) {
+
+  if (objectName == "EcalWeightXtalGroups") {
+    return generateEcalWeightXtalGroups();
+  } else if (objectName == "EcalTBWeights") {
+    return generateEcalTBWeights();
+  } else if (objectName == "EcalADCToGeVConstant") {
+    return generateEcalADCToGeVConstant();
+  } else if (objectName == "EcalGainRatios") {
+    return generateEcalGainRatios();
+  } else if (objectName == "EcalIntercalibConstants") {
+    return generateEcalIntercalibConstants();
+  } else if (objectName == "EcalPedestals") {
+    return generateEcalPedestals();
+  } else {
+    return 0;
+  }
+
+}
 
 //-------------------------------------------------------------
 EcalWeightXtalGroups*
@@ -132,9 +134,7 @@ Application::generateEcalWeightXtalGroups() {
       xtalGroups->setValue(ebid.rawId(), EcalXtalGroupId(ieta) ); // define rings in eta
     }
   }
-
   return xtalGroups;
-
 }
 
 //-------------------------------------------------------------
@@ -196,9 +196,9 @@ Application::generateEcalTBWeights() {
 EcalADCToGeVConstant*
 Application::generateEcalADCToGeVConstant() {
 //-------------------------------------------------------------
-
+  
   double r = (double)std::rand()/( double(RAND_MAX)+double(1) );
-  EcalADCToGeVConstant* agc = new EcalADCToGeVConstant(36.+r*4.,60.+r*4.);
+  EcalADCToGeVConstant* agc = new EcalADCToGeVConstant(36.+r*4., 60.+r*4);
   return agc;
 }
 
@@ -276,52 +276,81 @@ Application::generateEcalPedestals() {
 }
 
 //-------------------------------------------------------------
-void Application::writeObjectsIntoDB(unsigned long firstrun, unsigned long lastrun) {
+template <class T>
+void Application::writeObjectsIntoDB(unsigned long firstrun, unsigned long lastrun, unsigned int interval) {
 //-------------------------------------------------------------
 
-  //define iov objects
-  cond::IOV* grp_iov = new cond::IOV;
-  cond::IOV* tbwgt_iov =new cond::IOV;
-  cond::IOV* agc_iov =new cond::IOV;
-  cond::IOV* ical_iov=new cond::IOV;
-  cond::IOV* gr_iov=new cond::IOV;
-  //cond::IOV* pediov=new cond::IOV;
+  // Set up DB Connection
+  cond::ServiceLoader* loader;
+  cond::DBSession*     session;
+  cond::MetaData*      metadata_svc;
 
+  cout << "Setting up DB Connection..." << flush;
+  loader = new cond::ServiceLoader;
+  loader->loadMessageService(cond::Error);
+
+  session = new cond::DBSession(connection_);
+  session->connect(cond::ReadWriteCreate);
+
+  metadata_svc = new cond::MetaData(connection_, *loader);
+  metadata_svc->connect();
+
+  cout << "Done." << endl;
+
+
+  //define iov objects
+  cond::DBWriter* iovWriter  = new cond::DBWriter(*session, "IOV");
+  cond::IOV* iov = new cond::IOV;
+  std::string token;
+
+  // Get object's typeid string name
+  std::string objectTypeName = typeid(T).name();
+
+  // Get the object's normal name and define a tag
+  std::string objectName = objNameMap[objectTypeName];
+  std::string tag = objectName + "_" + tag_;
+  cout << "Using tag " << tag << endl;
+
+  // Create a DBWriter for this object type
+  cout << "Creating writer for " << objectName << endl;
+  cond::DBWriter* objectWriter = new cond::DBWriter(*session, objectName);
+
+  // Loop through each of the runs
   for(unsigned long irun=firstrun; irun<=lastrun; ++irun) {
+
+    // Skip if irun is not a factor of the interval
+    if (irun % interval != 0) {
+      continue;
+    }
+
     // Arguments 0 0 mean infine IOV
     if (firstrun == 0 && lastrun == 0) {
       cout << "Infinite IOV mode" << endl;
       irun = edm::IOVSyncValue::endOfTime().eventID().run();
     }
 
-    cout << "Starting Transaction for run " << irun << endl;
+    cout << "Starting Transaction for run " << irun << "..." << flush;
     session->startUpdateTransaction();
 
-    EcalWeightXtalGroups* xtalGroups = generateEcalWeightXtalGroups();
-    std::string grp_tok = grpWriter->markWrite<EcalWeightXtalGroups>(xtalGroups);
-    grp_iov->iov.insert(std::make_pair(irun,grp_tok));
+    // Generate the object
+    cout << "Generating " << objectName << "..." << flush;
+    T* condObject;
+    void* generatedObject = generate(objectName);
+    if (generatedObject != 0) {
+      condObject = reinterpret_cast<T*>( generatedObject );
+    } else {
+      cerr << "ERROR:  NULL returned from generate()" << endl;
+      exit(-1);
+    }
 
-    EcalTBWeights* tbwgt = generateEcalTBWeights();
-    std::string tbwgt_tok = tbwgtWriter->markWrite<EcalTBWeights>(tbwgt);
-    tbwgt_iov->iov.insert(std::make_pair(irun,tbwgt_tok));
+    // Write the object
+    cout << "Writing..." << flush;
+    token = objectWriter->markWrite(condObject);    
 
-    EcalADCToGeVConstant* agc = generateEcalADCToGeVConstant();
-    std::string agc_tok = agcWriter->markWrite<EcalADCToGeVConstant>(agc);
-    agc_iov->iov.insert(std::make_pair(irun,agc_tok));
-
-    EcalIntercalibConstants* ical = generateEcalIntercalibConstants();
-    std::string ical_tok = icalWriter->markWrite<EcalIntercalibConstants>(ical);
-    ical_iov->iov.insert( std::make_pair(irun,ical_tok) );
-
-    EcalGainRatios* gratio = generateEcalGainRatios();
-    std::string gr_tok = grWriter->markWrite<EcalGainRatios>(gratio);
-    gr_iov->iov.insert( std::make_pair(irun,gr_tok) );
-
-    //EcalPedestals* ped = generateEcalPedestals();
-    //std::string pedtok = pedWriter->markWrite<EcalPedestals>(ped);
-    //pediov->iov.insert(std::make_pair(irun,pedtok));
-
-    cout << "Committing Session for run " << irun << " ..." << flush;
+    // Insert the IOV
+    iov->iov.insert(std::make_pair(irun, token));
+  
+    cout << "Committing Session..." << flush;
     session->commit();
     cout << "Done." << endl;
 
@@ -334,41 +363,30 @@ void Application::writeObjectsIntoDB(unsigned long firstrun, unsigned long lastr
   // writing iov's and adding mapping for meta data
 
   // new session to write IOV objects
-  cout << "Starting transaction for IOV objects." << endl;
+  cout << "Starting transaction for IOV objects..." << flush;
   session->startUpdateTransaction();
 
-  std::string grp_iov_Token = iovWriter->markWrite<cond::IOV>(grp_iov);
-  std::string tbwgt_iov_Token = iovWriter->markWrite<cond::IOV>(tbwgt_iov);
-  std::string agc_iov_Token = iovWriter->markWrite<cond::IOV>(agc_iov);
-  std::string ical_iov_Token = iovWriter->markWrite<cond::IOV>(ical_iov);
-  std::string gr_iov_Token = iovWriter->markWrite<cond::IOV>(gr_iov);
-  //std::string pediovToken = iovWriter->markWrite<cond::IOV>(pediov);
+  cout << "Writing..." << flush;
+  std::string iovToken = iovWriter->markWrite(iov);
 
-  cout << "Committing Session for IOVs..." << flush;
+  cout << "Commit..." << flush;
   session->commit();
   cout << "Done." << endl;
 
   // finally add mapping for meta data
   cout << "Adding metadata to objects..." << flush;
+  metadata_svc->addMapping(tag, iovToken);
+  cout << "Done." << endl;
 
-  std::string grp_tag("EcalWeightXtalGroups_"+tag_);
-  metadata_svc->addMapping(grp_tag, grp_iov_Token);
-
-  std::string tbwgt_tag("EcalTBWeights_"+tag_);
-  metadata_svc->addMapping(tbwgt_tag, tbwgt_iov_Token);
-
-  std::string agc_tag("EcalADCToGeVConstant_"+tag_);
-  metadata_svc->addMapping(agc_tag, agc_iov_Token);
-
-  std::string ical_tag("EcalIntercalibConstants_"+tag_);
-  metadata_svc->addMapping(ical_tag, ical_iov_Token);
-
-  std::string gr_tag("EcalGainRatios_"+tag_);
-  metadata_svc->addMapping(gr_tag, gr_iov_Token);
-
-  //std::string ped_tag("EcalPedestals_"+tag_);
-  //metadata_svc->addMapping(tag_, pediovToken);
-
+  // Clean up
+  cout << "Cleaning up..." << flush;
+  delete objectWriter;
+  delete loader;
+  session->disconnect();
+  delete session;
+  metadata_svc->disconnect();
+  delete metadata_svc;
+  delete iovWriter;
   cout << "Done." << endl;
 
 } // writeObjectsIntoDB()
@@ -377,13 +395,18 @@ void Application::writeObjectsIntoDB(unsigned long firstrun, unsigned long lastr
 
 
 // =========
-int main(int argc, char* argv[]){
+int main(int argc, char* argv[]) {
 // =========
 
   // usage
-  if (argc != 5) {
-    cout << "testDevDB: "
-         << " <connection> <first run> <last run> <tag>"
+  if (argc < 6) {
+    cout << argv[0]
+         << " <connection> <first run> <last run> <interval> <tag> <object1> <object2> ..." << endl
+	 << " Where objectX is one of:  " << endl
+	 << " EcalWeightXtalGroups, EcalTBWeights, EcalADCToGeVConstant, EcalIntercalibConstants, EcalGainRatios" << endl
+	 << " Special conditions:" << endl
+	 << "   - Specify <first run>, <last run> and <interval> of 0 to write one object of infinite IOV" << endl
+	 << "   - Write no <objectX> list in order to write ALL object types" << endl
          << endl;
     exit(-1);
   }
@@ -392,17 +415,41 @@ int main(int argc, char* argv[]){
   std::string connection = argv[1];
   unsigned long firstRun = (unsigned long)atoi(argv[2]);
   unsigned long lastRun = (unsigned long)atoi(argv[3]);
-  std::string tag = argv[4];
+  unsigned int interval = (unsigned int)atoi(argv[4]);
+  std::string tag = argv[5];
 
+  vector<std::string> objectList;
+  for (int i=6; i<argc; i++) {
+    objectList.push_back(std::string(argv[i]));
+  }
 
   Application app(connection, tag);
 
   try {
-    app.writeObjectsIntoDB(firstRun,lastRun);
+    std::vector<std::string>::const_iterator ci;
+    for (ci = objectList.begin(); ci != objectList.end(); ci++) {
+
+      if (*ci == "EcalWeightXtalGroups") {
+	app.writeObjectsIntoDB<EcalWeightXtalGroups>(firstRun, lastRun, interval);
+      } else if (*ci =="EcalTBWeights") {
+	app.writeObjectsIntoDB<EcalTBWeights>(firstRun, lastRun, interval);
+      } else if (*ci == "EcalADCToGeVConstant") {
+	app.writeObjectsIntoDB<EcalADCToGeVConstant>(firstRun, lastRun, interval);
+      } else if (*ci ==  "EcalIntercalibConstants") {
+	app.writeObjectsIntoDB<EcalIntercalibConstants>(firstRun, lastRun, interval);
+      } else if (*ci ==  "EcalGainRatios") {
+	app.writeObjectsIntoDB<EcalGainRatios>(firstRun, lastRun, interval);
+      } else if (*ci ==  "EcalPedestals") {
+	app.writeObjectsIntoDB<EcalPedestals>(firstRun, lastRun, interval);
+      } else {
+	cout << "ERROR:  Object " << *ci << " is not supported by this program." << endl;
+      }
+
+    }
   } catch(cond::Exception &e) {
     cout << e.what() << endl;
-//   } // catch(seal::Exception &e) {
-//     cout << e.what() << endl;
+  } catch(std::exception &e) {
+    cout << e.what() << endl;
   } catch(...) {
     cout << "Unknown exception" << endl;
   }
