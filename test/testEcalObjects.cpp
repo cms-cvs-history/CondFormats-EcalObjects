@@ -25,7 +25,10 @@
 #include "CondFormats/EcalObjects/interface/EcalGainRatios.h"
 #include "CondFormats/EcalObjects/interface/EcalMGPAGainRatio.h"
 #include "CondFormats/EcalObjects/interface/EcalADCToGeVConstant.h"
-
+#include "CondFormats/EcalObjects/interface/EcalDCUTemperatures.h"
+#include "CondFormats/EcalObjects/interface/EcalPTMTemperatures.h"
+#include "CondFormats/EcalObjects/interface/EcalChannelStatus.h"
+#include "CondFormats/EcalObjects/interface/EcalMonitoringCorrections.h"
 #include "CondFormats/EcalObjects/interface/EcalWeightRecAlgoWeights.h"
 #include "CondFormats/EcalObjects/interface/EcalPedestals.h"
 #include "DataFormats/EcalDetId/interface/EBDetId.h"
@@ -58,7 +61,10 @@ try {
   cond::DBWriter icalWriter(*session, "EcalIntercalibConstants");
   cond::DBWriter pedWriter(*session, "EcalPedestals");
   cond::DBWriter wgtWriter(*session, "EcalWeightRecAlgoWeights");
-
+  cond::DBWriter dcuTWriter(*session, "EcalDCUTemperatures");
+  cond::DBWriter ptmTWriter(*session, "EcalPTMTemperatures");
+  cond::DBWriter chStWriter(*session, "EcalChannelStatus");
+  cond::DBWriter monCorWriter(*session, "EcalMonitoringCorrections");
 
   cond::DBWriter iovWriter(*session, "IOV");
   cout << "Done." << endl;
@@ -176,6 +182,10 @@ try {
 
   // create inter calib constants
   EcalIntercalibConstants* ical = new EcalIntercalibConstants;
+  EcalDCUTemperatures* dcuTemp = new EcalDCUTemperatures;
+  EcalPTMTemperatures* ptmTemp = new EcalPTMTemperatures;
+  EcalChannelStatus* chStatus = new EcalChannelStatus;
+  EcalMonitoringCorrections* monCorr = new EcalMonitoringCorrections;
 
   // create gain ratios
   EcalGainRatios* gratio = new EcalGainRatios;
@@ -190,7 +200,11 @@ try {
 
       double r = (double)std::rand()/( double(RAND_MAX)+double(1) );
       ical->setValue( ebid.rawId(), 0.85 + r*0.3 );
-
+      
+      dcuTemp->setValue( ebid.rawId(), 20. + ebid.hashedIndex()*0.1);
+      ptmTemp->setValue( ebid.rawId(), 20. + ebid.hashedIndex()*0.5);
+      chStatus->setValue( ebid.rawId(),  EcalChannelStatusCode(ebid.hashedIndex()) );
+      monCorr->setValue( ebid.rawId(), 1. + ebid.hashedIndex()*0.1 );
       EcalMGPAGainRatio gr;
       gr.setGain12Over6( 1.9 + r*0.2 );
       gr.setGain6Over1( 5.9 + r*0.2 );
@@ -202,6 +216,10 @@ try {
 
   std::string gr_tok = grWriter.markWrite<EcalGainRatios>(gratio);//pool::Ref takes the ownership of ped1
   std::string ical_tok = icalWriter.markWrite<EcalIntercalibConstants>(ical);//pool::Ref takes the ownership of ped1
+  std::string dcuT_tok = dcuTWriter.markWrite<EcalDCUTemperatures>(dcuTemp);//pool::Ref takes the ownership of ped1
+  std::string ptmT_tok = ptmTWriter.markWrite<EcalPTMTemperatures>(ptmTemp);//pool::Ref takes the ownership of ped1
+  std::string chStatus_tok = chStWriter.markWrite<EcalChannelStatus>(chStatus);//pool::Ref takes the ownership of ped1
+  std::string monCorr_tok = monCorWriter.markWrite<EcalMonitoringCorrections>(monCorr);//pool::Ref takes the ownership of ped1
 
   // create IOV for EcalGainRatios
   cond::IOV* gr_iov=new cond::IOV;
@@ -213,8 +231,28 @@ try {
   cond::IOV* ical_iov=new cond::IOV;
   ical_iov->iov.insert( std::make_pair(edm::IOVSyncValue::endOfTime().eventID().run(),ical_tok) );
   std::string ical_iov_Token = iovWriter.markWrite<cond::IOV>(ical_iov);
-
   std::cout << "Intercalib constants stored in DB with IoV" << std::endl;
+
+  cond::IOV* dcuT_iov=new cond::IOV;
+  dcuT_iov->iov.insert( std::make_pair(edm::IOVSyncValue::endOfTime().eventID().run(),dcuT_tok) );
+  std::string dcuT_iov_Token = iovWriter.markWrite<cond::IOV>(dcuT_iov);
+  std::cout << "DCU Temp stored in db with IoV" << std::endl;
+
+  cond::IOV* ptmT_iov=new cond::IOV;
+  ptmT_iov->iov.insert( std::make_pair(edm::IOVSyncValue::endOfTime().eventID().run(),ptmT_tok) );
+  std::string ptmT_iov_Token = iovWriter.markWrite<cond::IOV>(ptmT_iov);
+  std::cout << "PTM Temp stored in db with IoV" << std::endl;
+
+  cond::IOV* chStatus_iov=new cond::IOV;
+  chStatus_iov->iov.insert( std::make_pair(edm::IOVSyncValue::endOfTime().eventID().run(),chStatus_tok) );
+  std::string chStatus_iov_Token = iovWriter.markWrite<cond::IOV>(chStatus_iov);
+  std::cout << "Channel Status stored in db with IoV" << std::endl;
+
+  cond::IOV* monCorr_iov=new cond::IOV;
+  monCorr_iov->iov.insert( std::make_pair(edm::IOVSyncValue::endOfTime().eventID().run(),monCorr_tok) );
+  std::string monCorr_iov_Token = iovWriter.markWrite<cond::IOV>(monCorr_iov);
+  std::cout << "Monitoring corrections stored in db with IoV" << std::endl;
+
 
   // create EcalPedestals
   EcalPedestals* ped1=new EcalPedestals;
@@ -358,6 +396,10 @@ try {
   metadata_svc->addMapping("EcalIntercalibConstants", ical_iov_Token);
   metadata_svc->addMapping("EcalADCToGeVConstant", agc_iov_Token);
   metadata_svc->addMapping("EcalWeightRecAlgoWeights", wgtiovToken);
+  metadata_svc->addMapping("EcalDCUTemperatures", dcuT_iov_Token);
+  metadata_svc->addMapping("EcalPTMTemperatures", ptmT_iov_Token);
+  metadata_svc->addMapping("EcalChannelStatus", chStatus_iov_Token);
+  metadata_svc->addMapping("EcalMonitoringCorrections", monCorr_iov_Token);
   cout << "Done." << endl;
 
   cout << "Disconnecting MetaStata Service..." << flush;
