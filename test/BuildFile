@@ -29,3 +29,8 @@
   <use name=CondCore/ESSources>
   <bin file=testDevDB.cpp></bin>
 </environment>
+
+<environment>
+  <use name=CondFormats/EcalObjects>
+  <bin file=testErrorDict.cpp></bin>
+</environment>
