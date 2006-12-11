@@ -299,7 +299,7 @@ void Application::writeObjectsIntoDB(unsigned long firstrun, unsigned long lastr
 
 
   //define iov objects
-  cond::DBWriter* iovWriter  = new cond::DBWriter(*session, "IOV");
+  cond::DBWriter* iovWriter  = new cond::DBWriter(*session, "cond::IOV");
   cond::IOV* iov = new cond::IOV;
   std::string token;
 
