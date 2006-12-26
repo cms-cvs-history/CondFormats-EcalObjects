@@ -17,6 +17,7 @@
   <use name=CondCore/IOVService>
   <use name=CondCore/MetaDataService>
   <use name=CondCore/ESSources>
+  <use name=DataFormats/EcalDetId>
   <bin file=testEcalObjects.cpp></bin>
 </environment>
 
@@ -27,6 +28,7 @@
   <use name=CondCore/IOVService>
   <use name=CondCore/MetaDataService>
   <use name=CondCore/ESSources>
+  <use name=DataFormats/EcalDetId>
   <bin file=testDevDB.cpp></bin>
 </environment>
 
