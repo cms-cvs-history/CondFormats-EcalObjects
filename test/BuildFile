@@ -1,5 +1,6 @@
 <environment>
   <use name=clhep>
+  <use name=DataFormats/EcalDetId>
   <use name=CondFormats/DataRecord>
   <use name=CondFormats/EcalObjects>
   <use name=CondCore/DBCommon>
@@ -9,30 +10,4 @@
   <library file=stubs/EcalObjectAnalyzer.cc name=EcalObjectAnalyzer>
     <flags SEAL_PLUGIN_NAME="EcalObjectAnalyzer">
   </library>
-</environment>
-
-<environment>
-  <use name=CondFormats/EcalObjects>
-  <use name=CondCore/DBCommon>
-  <use name=CondCore/IOVService>
-  <use name=CondCore/MetaDataService>
-  <use name=CondCore/ESSources>
-  <use name=DataFormats/EcalDetId>
-  <bin file=testEcalObjects.cpp></bin>
-</environment>
-
-<environment>
-  <Flags CXXFLAGS=-g>
-  <use name=CondFormats/EcalObjects>
-  <use name=CondCore/DBCommon>
-  <use name=CondCore/IOVService>
-  <use name=CondCore/MetaDataService>
-  <use name=CondCore/ESSources>
-  <use name=DataFormats/EcalDetId>
-  <bin file=testDevDB.cpp></bin>
-</environment>
-
-<environment>
-  <use name=CondFormats/EcalObjects>
-  <bin file=testErrorDict.cpp></bin>
 </environment>
