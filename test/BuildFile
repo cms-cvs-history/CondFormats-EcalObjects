@@ -8,6 +8,6 @@
   <use name=CondCore/IOVService>
   <use name=CondCore/MetaDataService>
   <library file=stubs/EcalObjectAnalyzer.cc name=EcalObjectAnalyzer>
-    <flags SEAL_PLUGIN_NAME="EcalObjectAnalyzer">
+    <flags EDM_PLUGIN=1>
   </library>
 </environment>
