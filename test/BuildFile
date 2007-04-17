@@ -4,7 +4,6 @@
   <use name=CondFormats/DataRecord>
   <use name=CondFormats/EcalObjects>
   <use name=CondCore/DBCommon>
-  <use name=CondCore/ESSources>
   <use name=CondCore/IOVService>
   <use name=CondCore/MetaDataService>
   <library file=stubs/EcalObjectAnalyzer.cc name=EcalObjectAnalyzer>
